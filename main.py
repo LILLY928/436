@@ -20,6 +20,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from model import CNNModel
 from utils import str2bool
+import wandb
 # import DataLoader
 
 
@@ -41,6 +42,7 @@ parser.add_argument("-activation", dest="activation", type=str, default='relu', 
 # parser.add_argument("-MC", dest='MC', type=int, default=10, help="number of monte carlo")
 parser.add_argument("-channel_out1", dest='channel_out1', type=int, default=64, help="number of channels")
 parser.add_argument("-channel_out2", dest='channel_out2', type=int, default=64, help="number of channels")
+parser.add_argument("-channel_out3", dest='channel_out3', type=int, default=64, help="number of channels")
 parser.add_argument("-k_size", dest='k_size', type=int, default=4, help="size of filter")
 parser.add_argument("-pooling_size", dest='pooling_size', type=int, default=2, help="size for max pooling")
 parser.add_argument("-stride", dest='stride', type=int, default=1, help="stride for filter")
@@ -68,15 +70,23 @@ def _load_data(DATA_PATH, batch_size):
 	return train_loader, test_loader
 
 
-
 def _compute_accuracy(y_pred, y_batch):
 	## --------------------------------------------
 	## write the code of computing accuracy below
 	## --------------------------------------------
-	accy = 
+	correct= (y_pred==y_batch).sum().item()
+	total= y_batch.size(0)
+	accy= correct/total
 	return accy
-	
 
+def _save_checkpoint(ckp_path, model, epoch, optimizer, global_step):
+    ## save checkpoint to ckp_path: 'checkpoint/step_100.pt'
+    ckp_path = ckp_path + 'ckp_{}.pt'.format(epoch+1)
+    checkpoint = {'epoch': epoch,
+                  'global_step': global_step,
+                  'model_state_dict': model.state_dict(),
+                  'optimizer_state_dict': optimizer.state_dict()}
+    torch.save(checkpoint, ckp_path)
 
 def adjust_learning_rate(learning_rate, optimizer, epoch, decay):
 	"""Sets the learning rate to the initial LR decayed by 1/10 every args.lr epochs"""
@@ -90,7 +100,7 @@ def adjust_learning_rate(learning_rate, optimizer, epoch, decay):
 	
 	for param_group in optimizer.param_groups:
 		param_group['lr'] = lr
-	# print("learning_rate: ", lr)
+	print("learning_rate: ", lr)
 	
 	
 
@@ -104,10 +114,9 @@ def main():
 		torch.cuda.manual_seed(72)
 
 	## initialize hyper-parameters
-	num_epoches = args.num_epoches
-	decay = args.decay
-	learning_rate = args.learning_rate
-	
+	num_epoches = args.num_epoches              # default: 40
+	decay = args.decay                          # default: 0.5
+	learning_rate = args.learning_rate          # default: 0.001
 
 	## step 1: Load data
 	DATA_PATH = "./data/"
@@ -116,7 +125,7 @@ def main():
 	##-------------------------------------------------------
 	## please write the code about model initialization below
 	##-------------------------------------------------------
-	model =  
+	model = CNNModel()
 	## load model to gpu or cpu
 	model.to(device)
 	
@@ -124,16 +133,17 @@ def main():
 	## Complete code about defining the LOSS FUNCTION
 	## --------------------------------------------------
 	optimizer = optim.Adam(model.parameters(),lr=learning_rate)  ## optimizer
-	loss_fun =    ## cross entropy loss
+	loss_fun =  nn.CrossEntropyLoss()  ## cross entropy loss
 	
 	##--------------------------------------------
 	## load checkpoint below if you need
 	##--------------------------------------------
-	# if args.load_checkpoint:
+	# if load_checkpoint:
 		## write load checkpoint code below
 
 	
 	##  model training
+	iteration=0
 	if args.mode == 'train':
 		model = model.train() ## model training
 		for epoch in range(num_epoches): #10-50
@@ -141,6 +151,7 @@ def main():
 			adjust_learning_rate(learning_rate, optimizer, epoch, decay)
 			
 			for batch_id, (x_batch,y_labels) in enumerate(train_loader):
+				iteration+=1
 				x_batch,y_labels = Variable(x_batch).to(device), Variable(y_labels).to(device)
 
 				## feed input data x into model
@@ -149,31 +160,36 @@ def main():
 				##---------------------------------------------------
 				## write loss function below, refer to tutorial slides
 				##----------------------------------------------------
-				loss = 
+				loss = loss_fun(output_y, y_labels)
 				
 
 				##----------------------------------------
 				## write back propagation below
 				##----------------------------------------
-				
+				optimizer.zero_grad()
+				loss.backward()
+				optimizer.step() # update params
 
 				##------------------------------------------------------
 				## get the predict result and then compute accuracy below
 				##------------------------------------------------------
-				# _, y_pred = torch.max(output_y.data, 1)
 				y_pred = torch.argmax(output_y.data, 1)
+				accy= _compute_accuracy(y_pred, y_labels)
 				
 				
 				##----------------------------------------------------------
 				## loss.item() or use tensorboard to monitor the loss blow
 				## if use loss.item(), you may use log txt files to save loss
 				##----------------------------------------------------------
-				
+				if iteration%10==0:
+					print('iter: {} loss: {}, accy: {}'.format(iteration, loss.item(), accy))
+					wandb.log({'iter': iteration, 'loss': loss.item()})
+					wandb.log({'iter': iteration, 'accy': accy})
 
 			## -------------------------------------------------------------------
 			## save checkpoint below (optional), every "epoch" save one checkpoint
 			## -------------------------------------------------------------------
-			
+			_save_checkpoint(args.ckp_path, model, epoch, optimizer, iteration)
 			
 				
 
@@ -181,20 +197,23 @@ def main():
 	##    model testing code below
 	##------------------------------------
 	model.eval()
+	correct=0
+	total=0
 	with torch.no_grad():
 		for batch_id, (x_batch,y_labels) in enumerate(test_loader):
 			x_batch, y_labels = Variable(x_batch).to(device), Variable(y_labels).to(device)
 			##---------------------------------------
 			## write the predict result below
 			##---------------------------------------
-			
-			
+			output_y=model(x_batch)
+			y_pred=torch.argmax(output_y.data, 1)
 
 			##--------------------------------------------------
 			## complete code for computing the accuracy below
 			##---------------------------------------------------
-			
-	
+			correct+= (y_pred==y_labels).sum().item()
+			total+= y_labels.size(0)
+	print("testing accy: ", accy)
 		
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 """
 define moduals of model
 """
+import torch
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.nn as nn
@@ -17,29 +18,44 @@ class CNNModel(nn.Module):
 		##-----------------------------------------------------------
 		
 		## define CNN layers below
-		self.conv = nn.sequential( 	# nn.Conv2d(in_channels,...),
-									# activation fun,
-									# batch normalization (bonus),
-									# dropout,
-									# nn.Conv2d(in_channels,...),
-									# batch normalization (bonus),
-									# activation fun,
-									# dropout,
-									## continue like above,
-									## **define pooling (bonus)**,
-									
+		self.conv = nn.sequential( 	
+			nn.Conv2d(in_size=1, out_channels=args.channel_out1, kernel_size=args.k_size, stride=args.stride),
+			nn.BatchNorm2d(args.channel_out1),
+			nn.RELU(),
+			nn.Dropout(args.dropout),
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size),
+
+			nn.Conv2d(in_size=args.channel_out1, out_channels=args.channel_out2, kernel_size=args.k_size, stride=args.stride),
+			nn.BatchNorm2d(args.channel_out2),
+			nn.RELU(),
+			nn.Dropout(args.dropout),
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size),
+
+			nn.Conv2d(in_size=args.channel_out2, out_channels=args.channel_out3, kernel_size=args.k_size, stride=args.stride),
+			nn.BatchNorm2d(args.channel_out3),
+			nn.RELU(),
+			nn.Dropout(args.dropout),
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size) 
 								)
 
 		##-------------------------------------------------
 		## write code to define fully connected layers below
 		##-------------------------------------------------
-		in_size = 
-		out_size = 
+		dummy_input = torch.zeros(args.batch_size, 1, 28, 28)
+		with torch.no_grad():
+			out=self.conv(dummy_input)
+			flatten_size=out.view(1,-1).shape[1]
+		
+		in_size = flatten_size
+		print(in_size)
+		out_size = 10
 		# self.fc = nn.Linear(in_size, out_size)
 
-		self.fc = nn.sequential( # nn.Linear(in_size, out_1),
-								 # activation fun,
-								 # nn.Linear(out_1, out_size),
+		self.fc = nn.sequential(  nn.Linear(in_size, args.fc_hidden1),
+								  nn.RELU(),
+								  nn. Linear(args.fc_hidden1, args.fc_hidden2),
+								  nn.RELU(),
+								  nn. Linear(args.fc_hidden2, out_size),
 								)
 		
 
@@ -49,16 +65,15 @@ class CNNModel(nn.Module):
 		##---------------------------------------------------------
 		## write code to feed input features to the CNN models defined above
 		##---------------------------------------------------------
-		x_out = 
+		x_out = self.conv(x)
 
 		## write flatten tensor code below (it is done)
 		x = torch.flatten(x_out,1) # x_out is output of last layer
-		
 
 		## ---------------------------------------------------
 		## write fully connected layer (Linear layer) below
 		## ---------------------------------------------------
-		result =   # predict y
+		result = self.fc(x)   # predict y
 		
 		
 		return result
