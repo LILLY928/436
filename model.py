@@ -18,24 +18,24 @@ class CNNModel(nn.Module):
 		##-----------------------------------------------------------
 		
 		## define CNN layers below
-		self.conv = nn.sequential( 	
-			nn.Conv2d(in_size=1, out_channels=args.channel_out1, kernel_size=args.k_size, stride=args.stride),
+		self.conv = nn.Sequential( 	
+			nn.Conv2d(in_channels =1, out_channels=args.channel_out1, kernel_size=args.k_size, stride=args.stride),
 			nn.BatchNorm2d(args.channel_out1),
-			nn.RELU(),
+			nn.ReLU(),
 			nn.Dropout(args.dropout),
-			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size),
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride),
 
-			nn.Conv2d(in_size=args.channel_out1, out_channels=args.channel_out2, kernel_size=args.k_size, stride=args.stride),
+			nn.Conv2d(in_channels =args.channel_out1, out_channels=args.channel_out2, kernel_size=args.k_size, stride=args.stride),
 			nn.BatchNorm2d(args.channel_out2),
-			nn.RELU(),
+			nn.ReLU(),
 			nn.Dropout(args.dropout),
-			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size),
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride),
 
-			nn.Conv2d(in_size=args.channel_out2, out_channels=args.channel_out3, kernel_size=args.k_size, stride=args.stride),
+			nn.Conv2d(in_channels =args.channel_out2, out_channels=args.channel_out3, kernel_size=args.k_size, stride=args.stride),
 			nn.BatchNorm2d(args.channel_out3),
-			nn.RELU(),
+			nn.ReLU(),
 			nn.Dropout(args.dropout),
-			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride_size) 
+			nn.MaxPool2d(kernel_size=args.pooling_size, stride=args.stride) 
 								)
 
 		##-------------------------------------------------
@@ -46,15 +46,15 @@ class CNNModel(nn.Module):
 			out=self.conv(dummy_input)
 			flatten_size=out.view(1,-1).shape[1]
 		
-		in_size = flatten_size
+		in_size = 16384
 		print(in_size)
 		out_size = 10
 		# self.fc = nn.Linear(in_size, out_size)
 
-		self.fc = nn.sequential(  nn.Linear(in_size, args.fc_hidden1),
-								  nn.RELU(),
+		self.fc = nn.Sequential(  nn.Linear(in_size, args.fc_hidden1),
+								  nn.ReLU(),
 								  nn. Linear(args.fc_hidden1, args.fc_hidden2),
-								  nn.RELU(),
+								  nn.ReLU(),
 								  nn. Linear(args.fc_hidden2, out_size),
 								)
 		

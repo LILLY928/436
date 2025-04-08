@@ -15,12 +15,13 @@ import torch.optim as optim
 # from util import _create_batch
 import json
 import torchvision
-# from torch.utils.tensorboard import SummaryWriter
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from model import CNNModel
 from utils import str2bool
 import wandb
+from torch.utils.tensorboard import SummaryWriter  # Import TensorBoard
+
 # import DataLoader
 
 
@@ -102,7 +103,7 @@ def adjust_learning_rate(learning_rate, optimizer, epoch, decay):
 		param_group['lr'] = lr
 	print("learning_rate: ", lr)
 	
-	
+writer=SummaryWriter(log_dir='./logs')	
 
 def main():
 
@@ -125,7 +126,7 @@ def main():
 	##-------------------------------------------------------
 	## please write the code about model initialization below
 	##-------------------------------------------------------
-	model = CNNModel()
+	model = CNNModel(args)
 	## load model to gpu or cpu
 	model.to(device)
 	
@@ -183,13 +184,14 @@ def main():
 				##----------------------------------------------------------
 				if iteration%10==0:
 					print('iter: {} loss: {}, accy: {}'.format(iteration, loss.item(), accy))
+					# writer.add_scalar('Training Loss', loss.item(), iteration)
+					# writer.add_scalar('Training Accuracy', accy, iteration)
 					wandb.log({'iter': iteration, 'loss': loss.item()})
 					wandb.log({'iter': iteration, 'accy': accy})
-
 			## -------------------------------------------------------------------
 			## save checkpoint below (optional), every "epoch" save one checkpoint
 			## -------------------------------------------------------------------
-			_save_checkpoint(args.ckp_path, model, epoch, optimizer, iteration)
+			# _save_checkpoint(args.ckp_path, model, epoch, optimizer, iteration)
 			
 				
 
@@ -217,9 +219,11 @@ def main():
 		
 
 if __name__ == '__main__':
-	time_start = time.time()
-	main()
-	time_end = time.time()
-	print("running time: ", (time_end - time_start)/60.0, "mins")
+	# time_start = time.time()
+	# main()
+	# time_end = time.time()
+	# print("running time: ", (time_end - time_start)/60.0, "mins")
+	with wandb.init(project='CNN', name='CNN_demo'):
+		main()
 	
 
